@@ -73,10 +73,6 @@ def clean(text):
     text = re.sub(r'<[^>]+>', '', text)
     text = text.replace("&amp;", "and").replace("&lt;", "").replace("&gt;", "")
     text = text.replace("&", "and").replace("|", "-").replace("#", "")
-    text = text.replace("
-", " ").replace("
-", " ")
-    # Remove non-ASCII characters
     text = text.encode('ascii', 'ignore').decode('ascii')
     return text.strip()
 
@@ -91,7 +87,7 @@ def save_seen_jobs(seen_jobs):
         json.dump(seen_jobs, f, indent=2)
 
 def fetch_adzuna_jobs(query, page=1):
-    url = f"https://api.adzuna.com/v1/api/jobs/in/search/{page}"
+    url = "https://api.adzuna.com/v1/api/jobs/in/search/{}".format(page)
     params = {
         "app_id": ADZUNA_APP_ID,
         "app_key": ADZUNA_APP_KEY,
@@ -104,10 +100,10 @@ def fetch_adzuna_jobs(query, page=1):
     }
     try:
         response = requests.get(url, params=params, timeout=20)
-        print(f"  Status: {response.status_code}")
+        print("  Status: {}".format(response.status_code))
         return response.json()
     except Exception as e:
-        print(f"Error fetching Adzuna '{query}': {e}")
+        print("Error fetching Adzuna '{}': {}".format(query, e))
         return {}
 
 def parse_adzuna_jobs(data):
@@ -119,17 +115,13 @@ def parse_adzuna_jobs(data):
             location = clean(job.get("location", {}).get("display_name", "India"))
             url = job.get("redirect_url", "")
             created = job.get("created", "")
-
-            # Format date
             try:
                 dt = datetime.strptime(created[:10], "%Y-%m-%d")
                 posted = dt.strftime("%d %b %Y")
-            except:
+            except Exception:
                 posted = "Recently"
-
             if not title or not url:
                 continue
-
             jobs.append({
                 "title": title,
                 "company": company,
@@ -138,7 +130,7 @@ def parse_adzuna_jobs(data):
                 "posted": posted,
             })
     except Exception as e:
-        print(f"Parse error: {e}")
+        print("Parse error: {}".format(e))
     return jobs
 
 def is_relevant(job):
@@ -150,15 +142,15 @@ def is_relevant(job):
     return True
 
 def send_telegram(message):
-    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    url = "https://api.telegram.org/bot{}/sendMessage".format(TELEGRAM_BOT_TOKEN)
     payload = {"chat_id": TELEGRAM_CHAT_ID, "text": message}
     try:
         response = requests.post(url, json=payload, timeout=10)
         if not response.ok:
-            print(f"Telegram error: {response.status_code} - {response.text}")
+            print("Telegram error: {} - {}".format(response.status_code, response.text))
         return response.ok
     except Exception as e:
-        print(f"Telegram error: {e}")
+        print("Telegram error: {}".format(e))
         return False
 
 def main():
@@ -167,11 +159,11 @@ def main():
     all_urls = set()
 
     for query in SEARCH_QUERIES:
-        print(f"Fetching Adzuna: '{query}'")
+        print("Fetching Adzuna: '{}'".format(query))
         data = fetch_adzuna_jobs(query)
         total = data.get("count", 0)
         jobs = parse_adzuna_jobs(data)
-        print(f"  Total available: {total}, Fetched: {len(jobs)}")
+        print("  Total available: {}, Fetched: {}".format(total, len(jobs)))
 
         for job in jobs:
             url = job["url"]
@@ -185,7 +177,7 @@ def main():
             new_jobs.append(job)
             seen_jobs[url] = datetime.now(timezone.utc).isoformat()
 
-    print(f"Total new jobs found: {len(new_jobs)}")
+    print("Total new jobs found: {}".format(len(new_jobs)))
 
     if not new_jobs:
         print("No new matching jobs found.")
@@ -197,19 +189,20 @@ def main():
 
     for job in new_jobs:
         message = (
-            f"New Job Alert - Adzuna\n\n"
-            f"Found at: {batch_time}\n\n"
-            f"Role: {job['title']}\n"
-            f"Company: {job['company']}\n"
-            f"Location: {job['location']}\n"
-            f"Posted: {job['posted']}\n\n"
-            f"Apply here: {job['url']}"
-        )
+            "New Job Alert - Adzuna\n\n"
+            "Found at: {}\n\n"
+            "Role: {}\n"
+            "Company: {}\n"
+            "Location: {}\n"
+            "Posted: {}\n\n"
+            "Apply here: {}"
+        ).format(batch_time, job["title"], job["company"], job["location"], job["posted"], job["url"])
+
         success = send_telegram(message)
         if success:
-            print(f"Sent: {job['title']} at {job['company']}")
+            print("Sent: {} at {}".format(job["title"], job["company"]))
         else:
-            print(f"Failed: {job['title']}")
+            print("Failed: {}".format(job["title"]))
 
     save_seen_jobs(seen_jobs)
     print("Done.")
