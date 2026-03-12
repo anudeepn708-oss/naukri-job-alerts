@@ -6,75 +6,66 @@ from datetime import datetime, timezone, timedelta
 
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
-ADZUNA_APP_ID = os.environ.get("ADZUNA_APP_ID")
-ADZUNA_APP_KEY = os.environ.get("ADZUNA_APP_KEY")
 SEEN_JOBS_FILE = "seen_jobs.json"
 
-# Sector-specific queries — role always paired with sector
+# These queries are DIFFERENT from account 1
+# Focus: Consulting, Strategy, Startups, Ops, General MBA roles
 SEARCH_QUERIES = [
-    "product manager healthcare",
-    "product manager medical devices",
-    "product manager FMCG",
-    "product manager pharma",
-    "business analyst healthcare",
-    "business analyst FMCG",
-    "strategy consultant",
-    "management consultant",
-    "consulting analyst",
-    "operations consultant",
-    "strategy analyst",
-    "corporate strategy",
-    "founders office",
-    "operations manager healthcare",
-    "operations manager FMCG",
-    "supply chain manager FMCG",
-    "category manager FMCG",
-    "sales manager healthcare",
-    "sales manager medical devices",
-    "brand manager FMCG",
-    "market research analyst FMCG",
-    "growth analyst",
-    "business development manager healthcare",
-    "business development manager pharma",
+    "strategy consultant MBA India",
+    "management consultant associate India",
+    "business consultant India",
+    "consulting analyst India",
+    "associate consultant India",
+    "operations consultant India",
+    "founders office India",
+    "business strategy manager India",
+    "corporate strategy India",
+    "growth manager India",
+    "market entry strategy India",
+    "go to market strategy India",
+    "product strategy manager India",
+    "business transformation India",
+    "process excellence India",
+    "operational excellence India",
+    "demand planning manager India",
+    "commercial manager FMCG",
+    "key account manager pharma",
+    "zonal sales manager pharma",
+    "area sales manager medical",
+    "brand manager healthcare",
+    "product launch manager pharma",
+    "market access manager pharma",
+    "business development pharma India",
 ]
 
-# Role must contain one of these
-INCLUDE_ROLES = [
+PAGES_PER_QUERY = 3
+
+INCLUDE_KEYWORDS = [
     "product manager", "associate product manager", "apm",
-    "product analyst", "product lead", "product owner",
-    "business analyst", "strategy analyst", "strategy consultant",
-    "strategy manager", "management consultant", "consulting analyst",
-    "associate consultant", "operations consultant",
-    "operations manager", "operations analyst",
-    "supply chain manager", "supply chain analyst",
-    "demand planning", "category manager",
-    "sales manager", "sales analyst",
-    "brand manager", "trade marketing",
-    "business development manager",
-    "market research analyst", "market intelligence",
-    "growth analyst", "corporate strategy",
+    "product analyst", "product operations", "product lead",
+    "product owner", "product strategy",
+    "strategy analyst", "strategy consultant", "strategy manager",
+    "business strategy", "corporate strategy", "strategic initiatives",
+    "management consultant", "consulting analyst", "associate consultant",
+    "business consultant", "operations consultant",
+    "business analyst", "commercial manager",
+    "sales manager", "zonal sales", "area sales",
+    "key account manager", "kam",
+    "business development manager", "business development",
+    "gtm", "go-to-market", "market entry",
+    "brand manager", "product launch", "market access",
+    "category manager", "trade marketing",
+    "operations manager", "operational excellence",
+    "process excellence", "process improvement",
+    "supply chain manager", "demand planning",
     "founders office", "founder's office",
-    "program manager", "project manager",
-    "process improvement", "commercial excellence",
+    "business transformation", "transformation manager",
+    "growth manager", "growth analyst",
+    "market research analyst", "market intelligence",
+    "commercial excellence", "program manager",
+    "project manager",
 ]
 
-# Sectors — job title must contain at least one
-# EXCEPT for pure strategy/consulting roles which pass without sector check
-STRATEGY_ROLES = [
-    "strategy consultant", "management consultant", "consulting analyst",
-    "associate consultant", "strategy analyst", "corporate strategy",
-    "operations consultant", "founders office", "founder's office",
-    "growth analyst",
-]
-
-ALLOWED_SECTORS = [
-    "healthcare", "health care", "medical", "medtech", "med tech",
-    "pharma", "pharmaceutical", "diagnostics", "hospital", "clinical",
-    "fmcg", "consumer goods", "consumer product", "food", "beverage",
-    "retail", "nutrition", "wellness", "beauty", "personal care",
-]
-
-# Hard excludes — never pass regardless
 EXCLUDE_KEYWORDS = [
     "senior", "sr.", " sr ", "lead ", "principal",
     "vp", "vice president", "director", "head of",
@@ -82,36 +73,35 @@ EXCLUDE_KEYWORDS = [
     "general manager", "dgm", "agm",
     "associate director", "associate vp",
     "intern", "internship", "fresher", "trainee",
+    "chief of staff",
     "software engineer", "software developer", "developer",
     "data scientist", "machine learning", "devops", "backend",
     "frontend", "full stack", "qa engineer", "test engineer",
-    "data engineer", "cloud engineer", "it ", "information technology",
-    "technical program", "technical project", "it project",
-    "application manager", "erp", "sap", "crm developer",
+    "data engineer", "cloud engineer",
+    "technical program", "technical project",
+    "it project", "it manager", "application manager",
     "accountant", "finance manager", "chartered accountant",
     "radiologist", "doctor", "physician", "nurse", "technician",
     "driver", "field technician", "warehouse",
     "recruiter", "hr manager", "talent acquisition",
     "content writer", "graphic designer", "telecaller",
-    "cyber", "cybersecurity", "network engineer",
-    "banking", "insurance", "mortgage", "loan",
-    "chief of staff",
+    "cyber", "cybersecurity", "network",
+    "banking", "insurance", "mortgage",
     "channel sales", "channel partner",
-    "influencer", "social media",
+    "influencer", "social media manager",
+]
+
+INCLUDE_LOCATIONS = [
+    "bengaluru", "bangalore", "hyderabad", "mumbai",
+    "delhi", "gurugram", "gurgaon", "noida",
+    "remote", "india", "pan india", "work from home",
+    "chennai", "pune",
 ]
 
 def clean(text):
     text = text or ""
-    text = re.sub(r'<[^>]+>', '', text)
-    text = text.replace("&amp;", "and").replace("&lt;", "").replace("&gt;", "")
-    text = text.replace("&", "and").replace("|", "-").replace("#", "")
-    text = text.encode('ascii', 'ignore').decode('ascii')
+    text = text.replace("&", "and").replace("<", "").replace(">", "")
     return text.strip()
-
-def make_dedup_key(title, company):
-    t = re.sub(r'[^a-z0-9]', '', title.lower())
-    c = re.sub(r'[^a-z0-9]', '', company.lower())
-    return "{}__{}".format(t[:40], c[:20])
 
 def load_seen_jobs():
     if os.path.exists(SEEN_JOBS_FILE):
@@ -123,78 +113,64 @@ def save_seen_jobs(seen_jobs):
     with open(SEEN_JOBS_FILE, "w") as f:
         json.dump(seen_jobs, f, indent=2)
 
-def fetch_adzuna_jobs(query, page=1):
-    url = "https://api.adzuna.com/v1/api/jobs/in/search/{}".format(page)
-    params = {
-        "app_id": ADZUNA_APP_ID,
-        "app_key": ADZUNA_APP_KEY,
-        "what": query,
-        "where": "India",
-        "results_per_page": 50,
-        "max_days_old": 1,
-        "sort_by": "date",
-        "content-type": "application/json",
+def fetch_jobs(query, start=0):
+    url = (
+        "https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search"
+        "?keywords={}&location=India&f_TPR=r7200&start={}"
+    ).format(requests.utils.quote(query), start)
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/120.0.0.0 Safari/537.36"
+        )
     }
     try:
-        response = requests.get(url, params=params, timeout=20)
-        return response.json()
+        response = requests.get(url, headers=headers, timeout=15)
+        return response.text
     except Exception as e:
-        print("Error fetching Adzuna '{}': {}".format(query, e))
-        return {}
+        print("Error fetching '{}' start={}: {}".format(query, start, e))
+        return ""
 
-def parse_adzuna_jobs(data):
+def parse_jobs(html):
     jobs = []
-    try:
-        for job in data.get("results", []):
-            title = clean(job.get("title", ""))
-            company = clean(job.get("company", {}).get("display_name", "Unknown"))
-            location = clean(job.get("location", {}).get("display_name", "India"))
-            url = job.get("redirect_url", "")
-            created = job.get("created", "")
-            category = clean(job.get("category", {}).get("label", ""))
-            try:
-                dt = datetime.strptime(created[:10], "%Y-%m-%d")
-                posted = dt.strftime("%d %b %Y")
-            except Exception:
-                posted = "Recently"
-            if not title or not url:
-                continue
-            jobs.append({
-                "title": title,
-                "company": company,
-                "location": location,
-                "url": url,
-                "posted": posted,
-                "category": category,
-            })
-    except Exception as e:
-        print("Parse error: {}".format(e))
+    blocks = html.split('<div class="base-card')
+
+    title_re = re.compile(r'<h3[^>]*class="[^"]*base-search-card__title[^"]*"[^>]*>\s*([^<]+)\s*</h3>', re.I)
+    company_re = re.compile(r'<h4[^>]*class="[^"]*base-search-card__subtitle[^"]*"[^>]*>[\s\S]*?<a[^>]*>\s*([^<]+)\s*</a>', re.I)
+    location_re = re.compile(r'<span[^>]*class="[^"]*job-search-card__location[^"]*"[^>]*>\s*([^<]+)\s*</span>', re.I)
+    url_re = re.compile(r'<a[^>]*class="[^"]*base-card__full-link[^"]*"[^>]*href="([^"]+)"', re.I)
+    posted_re = re.compile(r'<time[^>]*>\s*([^<]+)\s*</time>', re.I)
+
+    for block in blocks:
+        title_m = title_re.search(block)
+        url_m = url_re.search(block)
+        if not title_m or not url_m:
+            continue
+
+        company_m = company_re.search(block)
+        location_m = location_re.search(block)
+        posted_m = posted_re.search(block)
+
+        jobs.append({
+            "title": clean(title_m.group(1)),
+            "company": clean(company_m.group(1) if company_m else "Unknown"),
+            "location": clean(location_m.group(1) if location_m else "India"),
+            "url": url_m.group(1).strip().split("?")[0],
+            "posted": clean(posted_m.group(1) if posted_m else "Recently"),
+        })
+
     return jobs
 
 def is_relevant(job):
     title = job["title"].lower()
-    category = job.get("category", "").lower()
-    combined = title + " " + category
-
-    # Hard excludes first
+    location = job["location"].lower()
+    if not any(k in title for k in INCLUDE_KEYWORDS):
+        return False
     if any(k in title for k in EXCLUDE_KEYWORDS):
         return False
-
-    # Must match a role
-    has_role = any(k in title for k in INCLUDE_ROLES)
-    if not has_role:
+    if not any(l in location for l in INCLUDE_LOCATIONS):
         return False
-
-    # Pure strategy/consulting roles pass without sector check
-    is_strategy = any(k in title for k in STRATEGY_ROLES)
-    if is_strategy:
-        return True
-
-    # All other roles need a sector match
-    has_sector = any(s in combined for s in ALLOWED_SECTORS)
-    if not has_sector:
-        return False
-
     return True
 
 def send_telegram(message):
@@ -212,24 +188,28 @@ def send_telegram(message):
 def main():
     seen_jobs = load_seen_jobs()
     new_jobs = []
-    seen_keys = set(seen_jobs.keys())
+    all_urls = set()
 
     for query in SEARCH_QUERIES:
-        print("Fetching Adzuna: '{}'".format(query))
-        data = fetch_adzuna_jobs(query)
-        total = data.get("count", 0)
-        jobs = parse_adzuna_jobs(data)
-        print("  Total available: {}, Fetched: {}".format(total, len(jobs)))
-
-        for job in jobs:
-            dedup_key = make_dedup_key(job["title"], job["company"])
-            if dedup_key in seen_keys:
-                continue
-            seen_keys.add(dedup_key)
-            if not is_relevant(job):
-                continue
-            new_jobs.append(job)
-            seen_jobs[dedup_key] = datetime.now(timezone.utc).isoformat()
+        for page in range(PAGES_PER_QUERY):
+            start = page * 25
+            print("Fetching: '{}' page {}".format(query, page + 1))
+            html = fetch_jobs(query, start=start)
+            jobs = parse_jobs(html)
+            if not jobs:
+                print("  No results on page {}, stopping.".format(page + 1))
+                break
+            for job in jobs:
+                url = job["url"]
+                if url in all_urls:
+                    continue
+                all_urls.add(url)
+                if url in seen_jobs:
+                    continue
+                if not is_relevant(job):
+                    continue
+                new_jobs.append(job)
+                seen_jobs[url] = datetime.now(timezone.utc).isoformat()
 
     print("Total new jobs found: {}".format(len(new_jobs)))
 
@@ -243,7 +223,7 @@ def main():
 
     for job in new_jobs:
         message = (
-            "New Job Alert - Adzuna\n\n"
+            "New Job Alert - LinkedIn\n\n"
             "Found at: {}\n\n"
             "Role: {}\n"
             "Company: {}\n"
